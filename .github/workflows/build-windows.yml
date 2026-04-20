@@ -30,21 +30,21 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Detected version: $VERSION"
 
-      - name: Configure CMake
+      # ---------- PAID BUILD ----------
+      - name: Configure (paid)
         run: cmake -B build -DCMAKE_BUILD_TYPE=Release
 
-      - name: Build
+      - name: Build (paid)
         run: cmake --build build --config Release --parallel
 
-      - name: Collect artifacts
+      - name: Collect paid artifacts
         shell: bash
         run: |
-          mkdir -p dist/Windows/VST3
-          mkdir -p dist/Windows/Standalone
-          cp -r "build/Pour_artefacts/Release/VST3/Pour.vst3" dist/Windows/VST3/ || true
-          cp "build/Pour_artefacts/Release/Standalone/Pour.exe" dist/Windows/Standalone/ || true
+          mkdir -p dist/Windows/VST3 dist/Windows/Standalone
+          cp -r "build/Pour_artefacts/Release/VST3/Pour.vst3" dist/Windows/VST3/
+          cp "build/Pour_artefacts/Release/Standalone/Pour.exe" dist/Windows/Standalone/
 
-      - name: Update Inno Setup version
+      - name: Update Inno Setup version (paid)
         shell: bash
         run: |
           VERSION=${{ steps.version.outputs.version }}
@@ -52,40 +52,78 @@ jobs:
           sed -i "s/AppVerName=.*/AppVerName=Pour v$VERSION/" installer/windows/pour.iss
           sed -i "s/OutputBaseFilename=.*/OutputBaseFilename=Pour-v$VERSION-Windows-Installer/" installer/windows/pour.iss
 
-      - name: Build Installer
+      - name: Build Installer (paid)
         shell: cmd
         run: |
           "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\windows\pour.iss
 
-      - name: Upload VST3
+      # ---------- DEMO BUILD ----------
+      - name: Configure (demo)
+        run: cmake -B build-demo -DCMAKE_BUILD_TYPE=Release -DBUILD_DEMO=ON
+
+      - name: Build (demo)
+        run: cmake --build build-demo --config Release --parallel
+
+      - name: Collect demo artifacts
+        shell: bash
+        run: |
+          mkdir -p dist/Windows-Demo/VST3 dist/Windows-Demo/Standalone
+          cp -r "build-demo/Pour_artefacts/Release/VST3/Pour.vst3" dist/Windows-Demo/VST3/
+          cp "build-demo/Pour_artefacts/Release/Standalone/Pour.exe" dist/Windows-Demo/Standalone/
+
+      - name: Build Demo Installer
+        shell: bash
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          cp installer/windows/pour.iss installer/windows/pour-demo.iss
+          sed -i "s|dist\\\\Windows\\\\VST3|dist\\\\Windows-Demo\\\\VST3|g" installer/windows/pour-demo.iss
+          sed -i "s|dist\\\\Windows\\\\Standalone|dist\\\\Windows-Demo\\\\Standalone|g" installer/windows/pour-demo.iss
+          sed -i "s|AppName=Pour|AppName=Pour Demo|" installer/windows/pour-demo.iss
+          sed -i "s|DefaultDirName={autopf}\\\\Carbonated Audio\\\\Pour|DefaultDirName={autopf}\\\\Carbonated Audio\\\\Pour Demo|" installer/windows/pour-demo.iss
+          sed -i "s/OutputBaseFilename=.*/OutputBaseFilename=Pour-v$VERSION-Demo-Windows-Installer/" installer/windows/pour-demo.iss
+
+      - name: Build Demo Installer (Inno)
+        shell: cmd
+        run: |
+          "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\windows\pour-demo.iss
+
+      # ---------- UPLOAD ARTIFACTS ----------
+      - name: Upload paid VST3
         uses: actions/upload-artifact@v4
         with:
           name: Pour-Windows-VST3
           path: dist/Windows/VST3/
 
-      - name: Upload Standalone
-        uses: actions/upload-artifact@v4
-        with:
-          name: Pour-Windows-Standalone
-          path: dist/Windows/Standalone/
-
-      - name: Upload Installer
+      - name: Upload paid Installer
         uses: actions/upload-artifact@v4
         with:
           name: Pour-Windows-Installer
           path: dist/Windows/Installer/Pour-*.exe
 
-      - name: Create Release assets
+      - name: Upload demo Installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: Pour-Demo-Windows-Installer
+          path: dist/Windows/Installer/Pour-v*-Demo-Windows-Installer.exe
+
+      # ---------- RELEASE ----------
+      - name: Zip paid artifacts
         if: startsWith(github.ref, 'refs/tags/v')
         shell: bash
         run: |
-          cd dist/Windows
-          7z a -tzip ../../Pour-Windows.zip VST3/ Standalone/
+          cd dist/Windows && 7z a -tzip ../../Pour-Windows.zip VST3/ Standalone/
 
-      - name: Upload Release
-        if: startsWith(github.ref, 'refs/tags/v')
+      - name: Upload paid Release (non-demo tags)
+        if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, 'demo')
         uses: softprops/action-gh-release@v2
         with:
           files: |
             Pour-Windows.zip
-            dist/Windows/Installer/Pour-*.exe
+            dist/Windows/Installer/Pour-v*-Windows-Installer.exe
+
+      - name: Upload demo Release (demo tags)
+        if: contains(github.ref, 'demo')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/Windows/Installer/Pour-v*-Demo-Windows-Installer.exe

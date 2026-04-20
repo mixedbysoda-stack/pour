@@ -48,6 +48,8 @@ juce_add_binary_data(PourBinaryData SOURCES
 
 target_link_libraries(Pour PRIVATE PourBinaryData)
 
+option(BUILD_DEMO "Build demo version: skip license gate, apply 60s on / 10s mute cycle" OFF)
+
 target_compile_definitions(Pour PUBLIC
     JUCE_WEB_BROWSER=0
     JUCE_USE_CURL=0
@@ -55,6 +57,10 @@ target_compile_definitions(Pour PUBLIC
     JUCE_DISPLAY_SPLASH_SCREEN=0
     JUCE_REPORT_APP_USAGE=0
 )
+
+if(BUILD_DEMO)
+    target_compile_definitions(Pour PUBLIC POUR_DEMO=1)
+endif()
 
 target_link_libraries(Pour PRIVATE
     juce::juce_audio_utils

@@ -16,6 +16,10 @@ PourProcessor::PourProcessor()
 
 void PourProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
     engine.prepare(sampleRate, samplesPerBlock);
+#if POUR_DEMO
+    demoSampleRate = sampleRate;
+    demoSampleCounter = 0;
+#endif
 }
 
 void PourProcessor::releaseResources() {
@@ -32,11 +36,26 @@ bool PourProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const {
 void PourProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer&) {
     juce::ScopedNoDenormals noDenormals;
 
+#if POUR_DEMO
+    // Demo gate: 60 s play, 10 s silence, repeating — mirrors De-Sipper.
+    {
+        const int n = buffer.getNumSamples();
+        const juce::int64 cycle = (juce::int64) (70.0 * demoSampleRate);
+        const juce::int64 muteAt = (juce::int64) (60.0 * demoSampleRate);
+        const juce::int64 pos = demoSampleCounter % cycle;
+        demoSampleCounter += n;
+        if (pos >= muteAt) {
+            buffer.clear();
+            return;
+        }
+    }
+#else
     // License gate: silence audio if the plug-in is not activated.
     if (licenseManager && !licenseManager->isActivated()) {
         buffer.clear();
         return;
     }
+#endif
 
     // Push parameter values into engine
     engine.setInputTrimDb (apvts.getRawParameterValue(params::inputTrim)->load());

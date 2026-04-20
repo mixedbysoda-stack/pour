@@ -57,6 +57,12 @@ private:
     juce::ValueTree stateB;
     char abSlot = 'A';
 
+#if POUR_DEMO
+    // Demo audio gate: 60s pass, 10s silence, repeating.
+    juce::int64 demoSampleCounter = 0;
+    double demoSampleRate = 44100.0;
+#endif
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PourProcessor)
 };
 

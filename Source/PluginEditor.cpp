@@ -9,10 +9,12 @@ PourEditor::PourEditor(PourProcessor& p)
     setLookAndFeel(&lnf);
     addAndMakeVisible(panel);
 
+#if !POUR_DEMO
     addChildComponent(activationDialog);
     if (!proc.getLicenseManager().isActivated())
         activationDialog.setVisible(true);
     startTimerHz(4);
+#endif
 
     setResizable(true, true);
     setResizeLimits(900, 360, 1600, 640);
@@ -20,15 +22,19 @@ PourEditor::PourEditor(PourProcessor& p)
 }
 
 PourEditor::~PourEditor() {
+#if !POUR_DEMO
     stopTimer();
+#endif
     setLookAndFeel(nullptr);
 }
 
 void PourEditor::timerCallback() {
+#if !POUR_DEMO
     if (proc.getLicenseManager().isActivated() && activationDialog.isVisible()) {
         activationDialog.setVisible(false);
         repaint();
     }
+#endif
 }
 
 void PourEditor::paint(juce::Graphics& g) {
