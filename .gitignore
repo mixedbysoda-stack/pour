@@ -1,0 +1,11 @@
+build/
+build-release/
+build-demo/
+dist/
+JUCE/
+installer/payload/
+installer/*.pkg
+*.secret*
+pour_license_secret.txt
+.DS_Store
+._*
