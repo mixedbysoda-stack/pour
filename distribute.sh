@@ -20,7 +20,7 @@ NOTARY_PROFILE="carbonator-notary"
 
 WRAPTOOL="/Applications/PACEAntiPiracy/Eden/Fusion/Versions/5/bin/wraptool"
 PACE_ACCOUNT="sodanswishers"
-PACE_WCGUID="5F45D2A0-3560-11F1-B6A4-00505692AD3E"
+PACE_WCGUID="7D6E77D0-3C83-11F1-B00E-005056928F3B"
 
 VST3="$ARTEFACTS/VST3/Pour.vst3"
 AU="$ARTEFACTS/AU/Pour.component"

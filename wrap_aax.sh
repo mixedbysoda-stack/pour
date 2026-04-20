@@ -17,7 +17,7 @@ echo "Wrapping Pour AAX..."
     --verbose \
     --account sodanswishers \
     --password "$PASSWORD" \
-    --wcguid 5F45D2A0-3560-11F1-B6A4-00505692AD3E \
+    --wcguid 7D6E77D0-3C83-11F1-B00E-005056928F3B \
     --in "$AAX_IN" \
     --out "$AAX_OUT"
 
