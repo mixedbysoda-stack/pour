@@ -108,7 +108,7 @@ for plugin in "$VST3" "$AU" "$STANDALONE"; do
 done
 echo ""
 
-# --- Step 5: Sign AAX with PACE wraptool ---
+# --- Step 5: Sign AAX with PACE wraptool (Pour uses a Signing Only profile) ---
 echo "[5/6] Signing AAX with PACE wraptool..."
 read -sp "  PACE password for '$PACE_ACCOUNT': " PACE_PASSWORD
 echo ""
@@ -121,7 +121,7 @@ rm -rf "$AAX_SIGNED"
     --wcguid "$PACE_WCGUID" \
     --signid "$SIGN_ID" \
     --in "$AAX" \
-    --out "$AAX_SIGNED" 2>&1 | grep -E "^(Successfully|Error)" || true
+    --out "$AAX_SIGNED" 2>&1 | tail -5
 echo "  AAX signed: $(basename "$AAX_SIGNED")"
 echo ""
 
