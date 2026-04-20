@@ -2,6 +2,7 @@ build/
 build-release/
 build-demo/
 dist/
+JUCE
 JUCE/
 installer/payload/
 installer/*.pkg
