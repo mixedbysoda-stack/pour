@@ -3,8 +3,10 @@
 namespace pour {
 
 PourEditor::PourEditor(PourProcessor& p)
-    : juce::AudioProcessorEditor(&p), proc(p), panel(p),
-      activationDialog(p.getLicenseManager())
+    : juce::AudioProcessorEditor(&p), proc(p), panel(p)
+#if !POUR_DEMO
+      , activationDialog(p.getLicenseManager())
+#endif
 {
     setLookAndFeel(&lnf);
     addAndMakeVisible(panel);
@@ -48,7 +50,9 @@ void PourEditor::paint(juce::Graphics& g) {
 
 void PourEditor::resized() {
     panel.setBounds(getLocalBounds().reduced(14));
+#if !POUR_DEMO
     activationDialog.setBounds(getLocalBounds());
+#endif
 }
 
 } // namespace pour

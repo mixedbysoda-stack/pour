@@ -9,7 +9,9 @@ PourProcessor::PourProcessor()
         .withOutput("Output", juce::AudioChannelSet::stereo(), true)),
       apvts(*this, nullptr, "Pour", params::createLayout())
 {
+#if !POUR_DEMO
     licenseManager = std::make_unique<LicenseManager>();
+#endif
     stateA = apvts.copyState();
     stateB = apvts.copyState();
 }

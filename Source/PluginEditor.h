@@ -22,7 +22,9 @@ private:
     PourProcessor& proc;
     PourLookAndFeel lnf;
     PourPanel panel;
+#if !POUR_DEMO
     ActivationDialog activationDialog;
+#endif
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PourEditor)
 };

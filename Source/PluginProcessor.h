@@ -38,7 +38,9 @@ public:
     // Access for editor
     juce::AudioProcessorValueTreeState& getState() noexcept { return apvts; }
     StereoImageEngine& getEngine() noexcept { return engine; }
+#if !POUR_DEMO
     LicenseManager& getLicenseManager() noexcept { return *licenseManager; }
+#endif
 
     // A/B compare state lives here so it survives editor open/close.
     juce::ValueTree getABState(char slot) const { return slot == 'A' ? stateA : stateB; }
@@ -50,7 +52,9 @@ public:
 private:
     juce::AudioProcessorValueTreeState apvts;
     StereoImageEngine engine;
+#if !POUR_DEMO
     std::unique_ptr<LicenseManager> licenseManager;
+#endif
 
     // A/B parameter snapshots
     juce::ValueTree stateA;
