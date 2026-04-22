@@ -27,7 +27,12 @@ public:
 
     // Feedback for UI (thread-safe reads from message thread).
     struct Levels { float inL = 0, inR = 0, outL = 0, outR = 0; };
-    Levels getLevels() const noexcept { return levelsSnapshot.load(); }
+    Levels getLevels() const noexcept {
+        return { levelInL.load(std::memory_order_relaxed),
+                 levelInR.load(std::memory_order_relaxed),
+                 levelOutL.load(std::memory_order_relaxed),
+                 levelOutR.load(std::memory_order_relaxed) };
+    }
 
     // Scope buffer: a ring of recent L/R samples at a downsampled rate.
     static constexpr int scopeSize = 2048;
@@ -58,8 +63,15 @@ private:
 
     void updateSideShelf(float hz, float gainDb);
 
-    // Level snapshots for UI
-    std::atomic<Levels> levelsSnapshot { Levels{} };
+    // Level snapshots for UI. Four individual atomic<float>s instead of a
+    // std::atomic<Levels> (16 bytes) — MSVC on Windows x64 emitted cmpxchg16b
+    // for the 16-byte atomic, which crashed some plug-in hosts during VST3
+    // scan (notably FL Studio on Intel Iris Xe). atomic<float> is always
+    // lock-free on Windows x64.
+    std::atomic<float> levelInL  { 0.f };
+    std::atomic<float> levelInR  { 0.f };
+    std::atomic<float> levelOutL { 0.f };
+    std::atomic<float> levelOutR { 0.f };
 
     // Scope ring buffer (written from audio thread, read by UI)
     mutable std::array<ScopeFrame, scopeSize> scopeRing {};

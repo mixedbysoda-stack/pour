@@ -85,7 +85,10 @@ void StereoImageEngine::process(juce::AudioBuffer<float>& buffer) {
                 scopeWrite.store((w + 1) % scopeSize, std::memory_order_release);
             }
         }
-        levelsSnapshot.store({ peakInL, peakInR, peakOutL, peakOutR });
+        levelInL.store(peakInL,  std::memory_order_relaxed);
+        levelInR.store(peakInR,  std::memory_order_relaxed);
+        levelOutL.store(peakOutL, std::memory_order_relaxed);
+        levelOutR.store(peakOutR, std::memory_order_relaxed);
         return;
     }
 
@@ -154,7 +157,10 @@ void StereoImageEngine::process(juce::AudioBuffer<float>& buffer) {
         }
     }
 
-    levelsSnapshot.store({ peakInL, peakInR, peakOutL, peakOutR });
+    levelInL.store(peakInL,  std::memory_order_relaxed);
+    levelInR.store(peakInR,  std::memory_order_relaxed);
+    levelOutL.store(peakOutL, std::memory_order_relaxed);
+    levelOutR.store(peakOutR, std::memory_order_relaxed);
 }
 
 int StereoImageEngine::readScope(ScopeFrame* dst, int maxCount) const noexcept {

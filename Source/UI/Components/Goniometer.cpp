@@ -14,6 +14,7 @@ void Goniometer::resized() {
     const int w = std::max(1, getWidth());
     const int h = std::max(1, getHeight());
     trailLayer = juce::Image(juce::Image::ARGB, w, h, true);
+    trailBack  = juce::Image(juce::Image::ARGB, w, h, true);
 }
 
 void Goniometer::timerCallback() { repaint(); }
@@ -64,51 +65,56 @@ void Goniometer::paint(juce::Graphics& g) {
         g.drawLine(cx, cy, x, y, is45 ? 1.0f : (deg == 0 ? 1.0f : 0.75f));
     }
 
-    // Persistence fade: multiply the trail image's alpha down each frame.
-    if (trailLayer.isValid()) {
-        juce::Image::BitmapData bd(trailLayer, juce::Image::BitmapData::readWrite);
-        const int iw = trailLayer.getWidth();
-        const int ih = trailLayer.getHeight();
-        for (int y = 0; y < ih; ++y) {
-            auto* line = bd.getLinePointer(y);
-            for (int x = 0; x < iw; ++x) {
-                auto* px = line + x * 4;
-                // ARGB order on macOS: byte 3 is alpha for ARGB images
-                const int a = (int) px[3];
-                px[3] = (juce::uint8) ((a * 230) / 256); // ~10% decay per frame
-                // Dim RGB proportionally so color fades too
-                px[0] = (juce::uint8) (((int) px[0] * 230) / 256);
-                px[1] = (juce::uint8) (((int) px[1] * 230) / 256);
-                px[2] = (juce::uint8) (((int) px[2] * 230) / 256);
+    // Persistence fade + new scope points: ping-pong buffer version.
+    //
+    // Previous implementation walked juce::Image::BitmapData byte-by-byte every
+    // frame to multiply per-pixel alpha. On Windows with Intel Iris Xe
+    // integrated graphics, that raw-memory access crashed hosts (FL Studio,
+    // others) during VST3 scan when the host briefly opens the editor to
+    // measure dimensions. Replaced with a cross-platform safe ping-pong:
+    //   1. Clear trailBack, draw the old trail onto it at 90% opacity.
+    //   2. Plot new scope points onto trailBack.
+    //   3. Composite trailBack to screen, then swap buffers.
+    // No raw pixel access, visually identical persistence-of-vision trail.
+    if (trailLayer.isValid() && trailBack.isValid()) {
+        trailBack.clear(trailBack.getBounds());
+
+        {
+            juce::Graphics fg(trailBack);
+            fg.setOpacity(0.9f);
+            fg.drawImageAt(trailLayer, 0, 0);
+        }
+
+        // Pull newest samples from engine and draw onto the back buffer.
+        const int toRead = 512;
+        const int count = engine.readScope(scratch.data(), toRead);
+
+        {
+            juce::Graphics tg(trailBack);
+            for (int i = 0; i < count; ++i) {
+                const float l = scratch[i].l;
+                const float r = scratch[i].r;
+                // Vectorscope plot: x = (L-R)/2 (side), y = (L+R)/2 (mid, upper half)
+                const float s = 0.5f * (l - r);
+                const float m = std::abs(0.5f * (l + r));
+                const float px = cx + s * (maxR * 0.55f);
+                const float py = cy - m * (maxR * 0.85f) - 6.0f;
+
+                // Soft glow
+                if ((i & 3) == 0) {
+                    tg.setColour(Colors::cyan.withAlpha(0.18f));
+                    tg.fillEllipse(px - 2.2f, py - 2.2f, 4.4f, 4.4f);
+                }
+                // Bright dot
+                tg.setColour(Colors::cyanBright.withAlpha(0.85f));
+                tg.fillEllipse(px - 0.9f, py - 0.9f, 1.8f, 1.8f);
             }
         }
-    }
 
-    // Pull newest samples from engine
-    const int toRead = 512;
-    const int count = engine.readScope(scratch.data(), toRead);
-
-    if (trailLayer.isValid()) {
-        juce::Graphics tg(trailLayer);
-        for (int i = 0; i < count; ++i) {
-            const float l = scratch[i].l;
-            const float r = scratch[i].r;
-            // Vectorscope plot: x = (L-R)/2 (side), y = (L+R)/2 (mid, upper half)
-            const float s = 0.5f * (l - r);
-            const float m = std::abs(0.5f * (l + r));
-            const float px = cx + s * (maxR * 0.55f);
-            const float py = cy - m * (maxR * 0.85f) - 6.0f;
-
-            // Soft glow
-            if ((i & 3) == 0) {
-                tg.setColour(Colors::cyan.withAlpha(0.18f));
-                tg.fillEllipse(px - 2.2f, py - 2.2f, 4.4f, 4.4f);
-            }
-            // Bright dot
-            tg.setColour(Colors::cyanBright.withAlpha(0.85f));
-            tg.fillEllipse(px - 0.9f, py - 0.9f, 1.8f, 1.8f);
-        }
-        g.drawImageAt(trailLayer, 0, 0);
+        // Display the updated back buffer, then swap so it becomes the
+        // current trail for next frame.
+        g.drawImageAt(trailBack, 0, 0);
+        std::swap(trailLayer, trailBack);
     }
 
     // --- S1-style stereo-field overlay (triangle showing width/rotation/asymmetry) ---

@@ -24,6 +24,10 @@ private:
 
     StereoImageEngine& engine;
     juce::Image trailLayer;        // persistence layer, faded each tick
+    juce::Image trailBack;         // back buffer — enables cross-platform fade
+                                   //   via drawImageAt + opacity (no raw pixel
+                                   //   access). Previous BitmapData loop crashed
+                                   //   FL Studio on Win/Intel Iris Xe at scan.
     std::array<StereoImageEngine::ScopeFrame, 1024> scratch {};
 
     // Overlay values (set from PourPanel)
