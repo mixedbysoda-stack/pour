@@ -14,7 +14,7 @@ echo "Signing Pour AAX..."
 
 /Applications/PACEAntiPiracy/Eden/Fusion/Versions/5/bin/wraptool sign \
     --account sodanswishers \
-    --wcguid 7D6E77D0-3C83-11F1-B00E-005056928F3B \
+    --wcguid 5F45D2A0-3560-11F1-B6A4-00505692AD3E \
     --password "$PASSWORD" \
     --signid 45C26CF1655F48EBC8A21802BDA053514719E1F0 \
     --in "$AAX_IN" \

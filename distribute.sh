@@ -20,7 +20,11 @@ NOTARY_PROFILE="carbonator-notary"
 
 WRAPTOOL="/Applications/PACEAntiPiracy/Eden/Fusion/Versions/5/bin/wraptool"
 PACE_ACCOUNT="sodanswishers"
-PACE_WCGUID="7D6E77D0-3C83-11F1-B00E-005056928F3B"
+# Shared Carbonated Audio WCGUID — same as Carbonator, On Tap, De-Sipper.
+# Previously used a Pour-specific Signing Only GUID (7D6E77D0-...) which
+# loaded on the dev machine but was rejected by Pro Tools on other Macs
+# (fresh GUID not in Avid's plugin whitelist).
+PACE_WCGUID="5F45D2A0-3560-11F1-B6A4-00505692AD3E"
 
 VST3="$ARTEFACTS/VST3/Pour.vst3"
 AU="$ARTEFACTS/AU/Pour.component"
@@ -108,7 +112,7 @@ for plugin in "$VST3" "$AU" "$STANDALONE"; do
 done
 echo ""
 
-# --- Step 5: Sign AAX with PACE wraptool (Pour uses a Signing Only profile) ---
+# --- Step 5: Sign AAX with PACE wraptool ---
 echo "[5/6] Signing AAX with PACE wraptool..."
 read -sp "  PACE password for '$PACE_ACCOUNT': " PACE_PASSWORD
 echo ""
