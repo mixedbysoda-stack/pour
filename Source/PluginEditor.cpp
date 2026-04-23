@@ -55,4 +55,26 @@ void PourEditor::resized() {
 #endif
 }
 
+void PourEditor::parentHierarchyChanged() {
+    juce::AudioProcessorEditor::parentHierarchyChanged();
+
+   #if JUCE_WINDOWS
+    // Force JUCE 8's GDI software renderer instead of the new Direct2D backend.
+    // Direct2D context init crashes on Intel Iris Xe integrated graphics inside
+    // sandboxed plug-in host processes (Bitwig PluginHost, Reaper plug-in
+    // scanner, MuLab) — confirmed via repeated 0xC0000005 access violations
+    // at scan time, despite earlier hotfixes that addressed unrelated raw-pixel
+    // and licensing-init paths. Pour exercises the paint path harder than the
+    // other Carbonated plug-ins (45 Hz Goniometer + two LedMeters + ARGB images
+    // recreated on every resize), which is why only Pour hits this. Software
+    // renderer adds negligible CPU cost and is rock-solid across GPU configs.
+    if (auto* peer = getPeer()) {
+        const auto engines = peer->getAvailableRenderingEngines();
+        const int softIdx = engines.indexOf("Software Renderer");
+        if (softIdx >= 0 && peer->getCurrentRenderingEngine() != softIdx)
+            peer->setCurrentRenderingEngine(softIdx);
+    }
+   #endif
+}
+
 } // namespace pour
