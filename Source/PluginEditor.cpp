@@ -4,34 +4,43 @@ namespace pour {
 
 PourEditor::PourEditor(PourProcessor& p)
     : juce::AudioProcessorEditor(&p), proc(p), panel(p)
-#if !POUR_DEMO
+#if !defined(POUR_DEMO) && !defined(POUR_MUSEHUB)
       , activationDialog(p.getLicenseManager())
 #endif
 {
     setLookAndFeel(&lnf);
     addAndMakeVisible(panel);
 
-#if !POUR_DEMO
+#if !defined(POUR_DEMO) && !defined(POUR_MUSEHUB)
     addChildComponent(activationDialog);
-    if (!proc.getLicenseManager().isActivated())
-        activationDialog.setVisible(true);
     startTimerHz(4);
 #endif
 
     setResizable(true, true);
     setResizeLimits(900, 360, 1600, 640);
     setSize(1146, 500);
+
+#if !defined(POUR_DEMO) && !defined(POUR_MUSEHUB)
+    // Show the dialog AFTER setSize() so the editor's resized() has propagated
+    // bounds down to activationDialog and its keyInput. visibilityChanged()
+    // fires synchronously from setVisible(true) and grabs keyboard focus on
+    // keyInput; on Windows + JUCE 8's GDI software renderer, calling
+    // grabKeyboardFocus() on a zero-bounds TextEditor crashes the host
+    // (Cubase 15 reproducer from a paying customer, Apr 29 2026).
+    if (!proc.getLicenseManager().isActivated())
+        activationDialog.setVisible(true);
+#endif
 }
 
 PourEditor::~PourEditor() {
-#if !POUR_DEMO
+#if !defined(POUR_DEMO) && !defined(POUR_MUSEHUB)
     stopTimer();
 #endif
     setLookAndFeel(nullptr);
 }
 
 void PourEditor::timerCallback() {
-#if !POUR_DEMO
+#if !defined(POUR_DEMO) && !defined(POUR_MUSEHUB)
     if (proc.getLicenseManager().isActivated() && activationDialog.isVisible()) {
         activationDialog.setVisible(false);
         repaint();
@@ -50,7 +59,7 @@ void PourEditor::paint(juce::Graphics& g) {
 
 void PourEditor::resized() {
     panel.setBounds(getLocalBounds().reduced(14));
-#if !POUR_DEMO
+#if !defined(POUR_DEMO) && !defined(POUR_MUSEHUB)
     activationDialog.setBounds(getLocalBounds());
 #endif
 }

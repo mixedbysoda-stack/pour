@@ -97,8 +97,19 @@ void ActivationDialog::resized()
 
 void ActivationDialog::visibilityChanged()
 {
-    if (isVisible())
-        keyInput.grabKeyboardFocus();
+    if (! isVisible())
+        return;
+
+    // Defer the focus grab one message-loop tick so it never runs while the
+    // editor is still mid-construction (zero bounds, no peer). Calling
+    // grabKeyboardFocus() synchronously from visibilityChanged() crashed
+    // Cubase 15 / Win 10 on JUCE 8's GDI software renderer.
+    juce::Component::SafePointer<juce::TextEditor> safeInput (&keyInput);
+    juce::MessageManager::callAsync ([safeInput]()
+    {
+        if (safeInput != nullptr && safeInput->isShowing())
+            safeInput->grabKeyboardFocus();
+    });
 }
 
 void ActivationDialog::onActivateClicked()
