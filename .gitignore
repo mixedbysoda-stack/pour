@@ -10,3 +10,5 @@ installer/*.pkg
 pour_license_secret.txt
 .DS_Store
 ._*
+
+build-demo-fix/

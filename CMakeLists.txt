@@ -1,4 +1,15 @@
 cmake_minimum_required(VERSION 3.22)
+# Universal, 10.13-and-later by default. Without this, a build configured
+# without -DCMAKE_OSX_DEPLOYMENT_TARGET inherits the host macOS version, which
+# is how the demo installers ended up requiring macOS 26. A -D on the command
+# line still wins, because this only fires when the variable is not defined.
+if(APPLE AND NOT DEFINED CMAKE_OSX_DEPLOYMENT_TARGET)
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13" CACHE STRING "Minimum macOS version" FORCE)
+endif()
+if(APPLE AND NOT DEFINED CMAKE_OSX_ARCHITECTURES)
+    set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "Build architectures" FORCE)
+endif()
+
 project(Pour VERSION 1.0.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
