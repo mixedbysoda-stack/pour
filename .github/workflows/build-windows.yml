@@ -2,7 +2,9 @@ name: Build Windows
 
 on:
   push:
-    branches: [main]
+    # rc/** = test builds: published as a GitHub pre-release (see the end of
+    # this file) so a tester can download them without a real version tag.
+    branches: [main, 'rc/**']
     tags: ['v*']
   pull_request:
     branches: [main]
@@ -110,7 +112,7 @@ jobs:
 
       # ---------- RELEASE ----------
       - name: Zip paid artifacts
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/v') || startsWith(github.ref, 'refs/heads/rc/')
         shell: bash
         run: |
           cd dist/Windows && 7z a -tzip ../../Pour-Windows.zip VST3/ Standalone/
@@ -124,8 +126,25 @@ jobs:
             dist/Windows/Installer/Pour-v*-Windows-Installer.exe
 
       - name: Upload demo Release (demo tags)
-        if: contains(github.ref, 'demo')
+        if: startsWith(github.ref, 'refs/tags/v') && contains(github.ref, 'demo')
         uses: softprops/action-gh-release@v2
         with:
           files: |
             dist/Windows/Installer/Pour-v*-Demo-Windows-Installer.exe
+
+      # ---------- TEST PRE-RELEASE (rc/* branches) ----------
+      # Push a branch named rc/<anything> to get a public pre-release with the
+      # paid installer, the demo installer and the zip, tagged
+      # v<version>-rc.<run number>. Site and partner links keep pointing at the
+      # last real v* tag, so nothing customer-facing changes.
+      - name: Upload test pre-release (rc branches)
+        if: startsWith(github.ref, 'refs/heads/rc/')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version }}-rc.${{ github.run_number }}
+          name: Pour v${{ steps.version.outputs.version }} test build ${{ github.run_number }} (not for release)
+          target_commitish: ${{ github.sha }}
+          prerelease: true
+          files: |
+            Pour-Windows.zip
+            dist/Windows/Installer/Pour-v*-Windows-Installer.exe
