@@ -52,7 +52,14 @@ void LedMeter::paint(juce::Graphics& g) {
     // Scale labels
     g.setColour(Colors::textSecondary);
     g.setFont(8.5f);
-    const char* scale[] = { "0", "3", "6", "9", "12", "15", "18", "24", "36", juce::String::charToString((juce::juce_wchar) 0x221E).toRawUTF8() };
+    // juce::String, not const char*: the old array stored toRawUTF8() of a
+    // temporary String for the infinity label, which was freed at the end of
+    // that line. drawText() then built a String from the dangling pointer every
+    // paint. On Windows the heap hands the freed block straight back, so the
+    // copy read and wrote the same bytes, never found its terminator and wrote
+    // off the end of the heap (0xc000041d in Pour.exe, every host and the demo).
+    const juce::String scale[] = { "0", "3", "6", "9", "12", "15", "18", "24", "36",
+                                   juce::String::charToString((juce::juce_wchar) 0x221E) };
     const int nScale = (int) (sizeof(scale) / sizeof(scale[0]));
     for (int i = 0; i < nScale; ++i) {
         const float y = juce::jmap((float) i / (float)(nScale - 1), 0.0f, (float) h - 10.0f);
