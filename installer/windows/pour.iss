@@ -1,13 +1,13 @@
 [Setup]
 AppName=Pour
-AppVersion=1.0.0
-AppVerName=Pour v1.0.0
+AppVersion=1.0.1
+AppVerName=Pour v1.0.1
 AppPublisher=Carbonated Audio
 AppPublisherURL=https://carbonatedaudio.com
 DefaultDirName={autopf}\Carbonated Audio\Pour
 DefaultGroupName=Carbonated Audio
 OutputDir=..\..\dist\Windows\Installer
-OutputBaseFilename=Pour-v1.0.0-Windows-Installer
+OutputBaseFilename=Pour-v1.0.1-Windows-Installer
 Compression=lzma
 SolidCompression=yes
 ArchitecturesInstallIn64BitMode=x64compatible

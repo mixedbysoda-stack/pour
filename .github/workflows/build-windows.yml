@@ -19,8 +19,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # Pinned to the JUCE release v1.0.0 shipped on, so a rebuild only
+      # changes what the commit changes. Bump deliberately, not by accident.
       - name: Clone JUCE
-        run: git clone --depth 1 https://github.com/juce-framework/JUCE.git JUCE
+        run: git clone --depth 1 --branch 8.0.12 https://github.com/juce-framework/JUCE.git JUCE
 
       - name: Get version from CMakeLists.txt
         id: version
