@@ -5,15 +5,34 @@ set -euo pipefail
 # Pour — macOS Distribution Build
 # Universal binary -> codesign -> notarize -> PACE AAX sign -> stage dist
 # ============================================================================
-# Usage: ./distribute.sh [version]
-# Example: ./distribute.sh 1.0.0
+# Usage: ./distribute.sh [version] [--demo]
+#   version defaults to project(Pour VERSION ...) and must match it.
+#   --demo builds with -DBUILD_DEMO=ON into build-demo/ and stages
+#   dist/pour-v<version>-demo for ./build_installer.sh --demo.
 # ============================================================================
 
-VERSION="${1:-1.0.0}"
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
-BUILD_DIR="$PROJECT_DIR/build-release"
+CMAKE_VERSION="$(sed -n 's/^project(Pour VERSION \([0-9.]*\).*/\1/p' "$PROJECT_DIR/CMakeLists.txt")"
+VERSION=""; DEMO=0
+for a in "$@"; do
+    case "$a" in
+        --demo) DEMO=1;;
+        -*) echo "unknown arg: $a"; exit 1;;
+        *) VERSION="$a";;
+    esac
+done
+VERSION="${VERSION:-$CMAKE_VERSION}"
+if [ "$VERSION" != "$CMAKE_VERSION" ]; then
+    echo "ERROR: version $VERSION does not match CMakeLists.txt ($CMAKE_VERSION)."
+    exit 1
+fi
+if [ "$DEMO" = 1 ]; then
+    BUILD_NAME="build-demo"; DEMO_FLAG="ON"; DIST_DIR="$PROJECT_DIR/dist/pour-v${VERSION}-demo"
+else
+    BUILD_NAME="build-release"; DEMO_FLAG="OFF"; DIST_DIR="$PROJECT_DIR/dist/pour-v${VERSION}"
+fi
+BUILD_DIR="$PROJECT_DIR/$BUILD_NAME"
 ARTEFACTS="$BUILD_DIR/Pour_artefacts/Release"
-DIST_DIR="$PROJECT_DIR/dist/pour-v${VERSION}"
 
 SIGN_ID="45C26CF1655F48EBC8A21802BDA053514719E1F0"
 NOTARY_PROFILE="carbonator-notary"
@@ -32,17 +51,18 @@ AAX="$ARTEFACTS/AAX/Pour.aaxplugin"
 AAX_SIGNED="$ARTEFACTS/AAX/Pour_signed.aaxplugin"
 STANDALONE="$ARTEFACTS/Standalone/Pour.app"
 
-echo "=== Pour v${VERSION} — Distribution Build ==="
+echo "=== Pour v${VERSION} (BUILD_DEMO=$DEMO_FLAG) - Distribution Build ==="
 echo ""
 
 # --- Step 1: Rebuild as Universal Binary ---
 echo "[1/6] Building universal binary (arm64 + x86_64)..."
 cd "$PROJECT_DIR"
-cmake -B build-release \
+cmake -B "$BUILD_NAME" \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" \
-    -DCMAKE_OSX_DEPLOYMENT_TARGET="10.13" > /dev/null 2>&1
-cmake --build build-release --target Pour_VST3 Pour_AU Pour_AAX Pour_Standalone --config Release --clean-first 2>&1 | tail -1
+    -DCMAKE_OSX_DEPLOYMENT_TARGET="10.13" \
+    -DBUILD_DEMO="$DEMO_FLAG" > /dev/null 2>&1
+cmake --build "$BUILD_NAME" --target Pour_VST3 Pour_AU Pour_AAX Pour_Standalone --config Release --clean-first 2>&1 | tail -1
 
 echo "  Verifying architectures..."
 for bin in "$VST3/Contents/MacOS/Pour" "$AU/Contents/MacOS/Pour" \
@@ -134,10 +154,11 @@ echo "[6/6] Packaging distribution..."
 rm -rf "$DIST_DIR"
 mkdir -p "$DIST_DIR"/{VST3,AU,AAX,Standalone}
 
-cp -R "$VST3"        "$DIST_DIR/VST3/"
-cp -R "$AU"          "$DIST_DIR/AU/"
-cp -R "$AAX_SIGNED"  "$DIST_DIR/AAX/Pour.aaxplugin"
-cp -R "$STANDALONE"  "$DIST_DIR/Standalone/"
+# ditto, never cp -R: cp corrupts the PACE symlink inside the AAX bundle.
+ditto "$VST3"        "$DIST_DIR/VST3/Pour.vst3"
+ditto "$AU"          "$DIST_DIR/AU/Pour.component"
+ditto "$AAX_SIGNED"  "$DIST_DIR/AAX/Pour.aaxplugin"
+ditto "$STANDALONE"  "$DIST_DIR/Standalone/Pour.app"
 
 echo "  Distribution folder: $DIST_DIR"
 echo ""
@@ -165,4 +186,4 @@ done
 echo ""
 
 echo "=== Done! Pour v${VERSION} ready to package ==="
-echo "  Next: ./build_installer.sh ${VERSION}"
+if [ "$DEMO" = 1 ]; then echo "  Next: ./build_installer.sh ${VERSION} --demo"; else echo "  Next: ./build_installer.sh ${VERSION}"; fi
